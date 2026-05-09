@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.app.core.database import get_db
@@ -10,6 +11,8 @@ from src.app.crud.appointment import (
     update_appointment,
 )
 from src.app.dependencies import get_current_user, require_roles
+from src.app.models.doctor import Doctor
+from src.app.models.patient import Patient
 from src.app.models.user import User, UserRole
 from src.app.schemas.appointment import AppointmentCreate, AppointmentRead, AppointmentUpdate
 
@@ -36,6 +39,12 @@ async def post_appointment(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Insufficient permissions")
     if current_user.role == UserRole.doctor and current_user.doctor_id != payload.doctor_id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Doctor can create only own appointments")
+    patient = await db.execute(select(Patient).where(Patient.id == payload.patient_id))
+    if patient.scalar_one_or_none() is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Patient not found")
+    doctor = await db.execute(select(Doctor).where(Doctor.id == payload.doctor_id))
+    if doctor.scalar_one_or_none() is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Doctor not found")
     return await create_appointment(db, payload)
 
 

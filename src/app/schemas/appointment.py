@@ -19,7 +19,7 @@ class AppointmentBase(BaseModel):
             value = value.replace(tzinfo=timezone.utc)
         if value < datetime.now(timezone.utc):
             raise ValueError("appointment_datetime cannot be in the past")
-        return value
+        return value.astimezone(timezone.utc).replace(tzinfo=None)
 
 
 class AppointmentCreate(AppointmentBase):
