@@ -203,6 +203,18 @@ Fix -> `/auth/login` now accepts both JSON (`email/password`) and OAuth2 form (`
 Problem -> For manual checking, students often already have a JWT from `/auth/register` and need to paste it directly.
 Fix -> Replaced the OpenAPI security helper with HTTP Bearer auth so Swagger `Authorize` shows a `Value` field for the JWT token.
 
+7) What failed -> Creating an appointment with Swagger datetime ending in `Z` returned `500`.
+Problem -> The API accepted timezone-aware UTC datetimes, while PostgreSQL stored a plain timestamp; invalid past-date responses also contained a raw `ValueError` object that was not JSON serializable.
+Fix -> Normalized appointment datetimes to UTC without timezone before persistence and wrapped validation errors with `jsonable_encoder`.
+
+8) What was improved -> Doctor role initially received the full patient list.
+Problem -> The advanced task requires doctors to see their own patients, not every patient in the clinic.
+Fix -> Doctor patient listing now returns only patients connected to the current doctor through appointments.
+
+9) What was improved -> Related entity creation could rely on database foreign key errors.
+Problem -> Wrong `patient_id` or `doctor_id` in appointments, prescriptions, or medical records produced less helpful runtime failures.
+Fix -> Added explicit `404 Patient not found` / `404 Doctor not found` checks before creating related records.
+
 ### Final checks
 - `docker compose down -v`
 - `docker compose up -d --build`
@@ -210,4 +222,10 @@ Fix -> Replaced the OpenAPI security helper with HTTP Bearer auth so Swagger `Au
 - `POST /api/v1/auth/register` -> returns bearer token
 - `POST /api/v1/auth/login` with JSON -> returns bearer token
 - `POST /api/v1/auth/login` with OAuth2 form -> returns bearer token
+- `POST /api/v1/patients` with bearer token -> creates patient
+- `POST /api/v1/doctors` with bearer token -> creates doctor
+- `POST /api/v1/appointments` with bearer token -> creates future appointment
+- `POST /api/v1/prescriptions` with bearer token -> creates prescription
+- `POST /api/v1/medical-records` with bearer token -> creates medical record
+- report endpoints -> return non-empty analytics lists after smoke data creation
 - `python -m pytest` -> `22 passed`

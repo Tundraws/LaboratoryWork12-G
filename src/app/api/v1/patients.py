@@ -1,9 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.app.crud.patient import create_patient, delete_patient, get_patient, list_patients, update_patient
 from src.app.dependencies import get_current_user, require_roles
 from src.app.core.database import get_db
+from src.app.models.appointment import Appointment
+from src.app.models.patient import Patient
 from src.app.models.user import User, UserRole
 from src.app.schemas.patient import PatientCreate, PatientRead, PatientUpdate
 
@@ -20,7 +23,15 @@ async def get_patients(
     if current_user.role == UserRole.admin:
         return patients
     if current_user.role == UserRole.doctor:
-        return patients
+        if current_user.doctor_id is None:
+            return []
+        result = await db.execute(
+            select(Patient)
+            .join(Appointment, Appointment.patient_id == Patient.id)
+            .where(Appointment.doctor_id == current_user.doctor_id)
+            .distinct()
+        )
+        return list(result.scalars().all())
     if current_user.role == UserRole.patient:
         return [patient for patient in patients if patient.id == current_user.patient_id]
     return []
