@@ -1,0 +1,27 @@
+{
+  "name": "clinic-code-explainer",
+  "displayName": "Clinic Code Explainer",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "activationEvents": [
+    "onCommand:clinic.explainCode"
+  ],
+  "main": "./extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "clinic.explainCode",
+        "title": "Explain Selected Code"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "clinic.explainCode",
+        "key": "ctrl+shift+e",
+        "when": "editorTextFocus"
+      }
+    ]
+  }
+}

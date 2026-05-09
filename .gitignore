@@ -1,0 +1,16 @@
+.venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+.coverage
+.env
+*.pyc
+*.pyo
+*.pyd
+
+# Local IDE/system artifacts
+.DS_Store
+Thumbs.db
+
+# Do not commit assignment PDF/source handouts
+*.pdf
