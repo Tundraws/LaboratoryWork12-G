@@ -7,6 +7,8 @@ class UserRegister(BaseModel):
     email: EmailStr
     password: str
     role: UserRole
+    patient_id: int | None = None
+    doctor_id: int | None = None
 
 
 class UserLogin(BaseModel):

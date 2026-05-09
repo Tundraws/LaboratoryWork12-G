@@ -16,3 +16,13 @@ async def create_prescription(db: AsyncSession, payload: PrescriptionCreate) -> 
 async def list_prescriptions(db: AsyncSession) -> list[Prescription]:
     result = await db.execute(select(Prescription))
     return list(result.scalars().all())
+
+
+async def get_prescription(db: AsyncSession, prescription_id: int) -> Prescription | None:
+    result = await db.execute(select(Prescription).where(Prescription.id == prescription_id))
+    return result.scalar_one_or_none()
+
+
+async def delete_prescription(db: AsyncSession, prescription: Prescription) -> None:
+    await db.delete(prescription)
+    await db.commit()

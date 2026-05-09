@@ -13,10 +13,17 @@ router = APIRouter(prefix="/patients", tags=["patients"])
 @router.get("", response_model=list[PatientRead])
 async def get_patients(
     db: AsyncSession = Depends(get_db),
-    _: User = Depends(require_roles(UserRole.admin, UserRole.doctor)),
+    current_user: User = Depends(get_current_user),
 ) -> list[PatientRead]:
-    """Return all patients for admin or doctor."""
-    return await list_patients(db)
+    """Return patients list with role-aware filtering."""
+    patients = await list_patients(db)
+    if current_user.role == UserRole.admin:
+        return patients
+    if current_user.role == UserRole.doctor:
+        return patients
+    if current_user.role == UserRole.patient:
+        return [patient for patient in patients if patient.id == current_user.patient_id]
+    return []
 
 
 @router.post("", response_model=PatientRead, status_code=status.HTTP_201_CREATED)
@@ -39,7 +46,7 @@ async def get_patient_by_id(
     patient = await get_patient(db, patient_id)
     if patient is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Patient not found")
-    if current_user.role == UserRole.patient and current_user.id != patient_id:
+    if current_user.role == UserRole.patient and current_user.patient_id != patient.id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Cannot view other patients")
     return patient
 

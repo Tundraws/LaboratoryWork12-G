@@ -16,3 +16,13 @@ async def create_doctor(db: AsyncSession, payload: DoctorCreate) -> Doctor:
 async def list_doctors(db: AsyncSession) -> list[Doctor]:
     result = await db.execute(select(Doctor))
     return list(result.scalars().all())
+
+
+async def get_doctor(db: AsyncSession, doctor_id: int) -> Doctor | None:
+    result = await db.execute(select(Doctor).where(Doctor.id == doctor_id))
+    return result.scalar_one_or_none()
+
+
+async def delete_doctor(db: AsyncSession, doctor: Doctor) -> None:
+    await db.delete(doctor)
+    await db.commit()

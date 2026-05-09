@@ -1,9 +1,9 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.app.core.database import get_db
-from src.app.crud.appointment import create_appointment, list_appointments
-from src.app.dependencies import require_roles
+from src.app.crud.appointment import create_appointment, delete_appointment, get_appointment, list_appointments
+from src.app.dependencies import get_current_user, require_roles
 from src.app.models.user import User, UserRole
 from src.app.schemas.appointment import AppointmentCreate, AppointmentRead
 
@@ -23,7 +23,45 @@ async def get_appointments(
 async def post_appointment(
     payload: AppointmentCreate,
     db: AsyncSession = Depends(get_db),
-    _: User = Depends(require_roles(UserRole.admin, UserRole.doctor)),
+    current_user: User = Depends(get_current_user),
 ) -> AppointmentRead:
-    """Create appointment (admin or doctor)."""
+    """Create appointment with role constraints."""
+    if current_user.role not in {UserRole.admin, UserRole.doctor}:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Insufficient permissions")
+    if current_user.role == UserRole.doctor and current_user.doctor_id != payload.doctor_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Doctor can create only own appointments")
     return await create_appointment(db, payload)
+
+
+@router.get("/{appointment_id}", response_model=AppointmentRead)
+async def get_appointment_by_id(
+    appointment_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> AppointmentRead:
+    """Return appointment by id with role checks."""
+    item = await get_appointment(db, appointment_id)
+    if item is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Appointment not found")
+    if current_user.role == UserRole.doctor and current_user.doctor_id != item.doctor_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Cannot view other appointments")
+    if current_user.role == UserRole.patient and current_user.patient_id != item.patient_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Cannot view other appointments")
+    return item
+
+
+@router.delete("/{appointment_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def remove_appointment(
+    appointment_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> None:
+    """Delete appointment by id with role checks."""
+    item = await get_appointment(db, appointment_id)
+    if item is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Appointment not found")
+    if current_user.role == UserRole.doctor and current_user.doctor_id != item.doctor_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Cannot delete other appointments")
+    if current_user.role == UserRole.patient:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Insufficient permissions")
+    await delete_appointment(db, item)
