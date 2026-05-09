@@ -1,7 +1,7 @@
 # Clinic Management System
 
 ## Student Information
-- Full name: Anastasia Melnikova
+- Full name: Melnikova Anastasia (Мельникова Анастасия)
 - Group: 220032-11
 - Laboratory work: 12
 - Variant: 3(25)

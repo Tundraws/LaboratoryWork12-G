@@ -13,7 +13,7 @@ services:
   web:
     build: .
     env_file:
-      - .env
+      - .env.example
     depends_on:
       - db
     ports:

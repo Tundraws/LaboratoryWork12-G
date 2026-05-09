@@ -5,9 +5,15 @@ from unittest.mock import AsyncMock, Mock
 import pytest
 from sqlalchemy.exc import IntegrityError
 
-from src.app.crud.appointment import create_appointment, delete_appointment, get_appointment, list_appointments
+from src.app.crud.appointment import (
+    create_appointment,
+    delete_appointment,
+    get_appointment,
+    list_appointments,
+    update_appointment,
+)
 from src.app.models.appointment import Appointment
-from src.app.schemas.appointment import AppointmentCreate
+from src.app.schemas.appointment import AppointmentCreate, AppointmentUpdate
 
 
 @pytest.fixture
@@ -54,6 +60,66 @@ async def test_get_appointment_none() -> None:
     db.execute.return_value = SimpleNamespace(scalar_one_or_none=lambda: None)
     result = await get_appointment(db, 10)
     assert result is None
+
+
+@pytest.mark.asyncio
+async def test_update_appointment_success() -> None:
+    db = SimpleNamespace(commit=AsyncMock(), rollback=AsyncMock(), refresh=AsyncMock())
+    appointment = Appointment(
+        id=1,
+        patient_id=1,
+        doctor_id=2,
+        appointment_datetime=datetime.now(timezone.utc) + timedelta(days=1),
+        status="scheduled",
+        complaint="Headache",
+        diagnosis=None,
+    )
+    payload = AppointmentUpdate(
+        patient_id=1,
+        doctor_id=2,
+        appointment_datetime=datetime.now(timezone.utc) + timedelta(days=2),
+        status="completed",
+        complaint="Headache",
+        diagnosis="Migraine",
+    )
+
+    result = await update_appointment(db, appointment, payload)
+
+    assert result is appointment
+    assert appointment.status == "completed"
+    assert appointment.diagnosis == "Migraine"
+    db.commit.assert_awaited_once()
+    db.refresh.assert_awaited_once_with(appointment)
+
+
+@pytest.mark.asyncio
+async def test_update_appointment_rollback() -> None:
+    db = SimpleNamespace(
+        commit=AsyncMock(side_effect=IntegrityError("stmt", "params", Exception("x"))),
+        rollback=AsyncMock(),
+        refresh=AsyncMock(),
+    )
+    appointment = Appointment(
+        id=1,
+        patient_id=1,
+        doctor_id=2,
+        appointment_datetime=datetime.now(timezone.utc) + timedelta(days=1),
+        status="scheduled",
+        complaint="Headache",
+        diagnosis=None,
+    )
+    payload = AppointmentUpdate(
+        patient_id=1,
+        doctor_id=2,
+        appointment_datetime=datetime.now(timezone.utc) + timedelta(days=2),
+        status="completed",
+        complaint="Headache",
+        diagnosis="Migraine",
+    )
+
+    with pytest.raises(RuntimeError):
+        await update_appointment(db, appointment, payload)
+    db.rollback.assert_awaited_once()
 
 
 @pytest.mark.asyncio
