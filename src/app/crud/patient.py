@@ -1,4 +1,5 @@
 from sqlalchemy import select
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.app.models.patient import Patient
@@ -8,7 +9,11 @@ from src.app.schemas.patient import PatientCreate, PatientUpdate
 async def create_patient(db: AsyncSession, payload: PatientCreate) -> Patient:
     patient = Patient(**payload.model_dump())
     db.add(patient)
-    await db.commit()
+    try:
+        await db.commit()
+    except SQLAlchemyError as exc:
+        await db.rollback()
+        raise RuntimeError("Failed to create patient") from exc
     await db.refresh(patient)
     return patient
 
@@ -26,11 +31,19 @@ async def get_patient(db: AsyncSession, patient_id: int) -> Patient | None:
 async def update_patient(db: AsyncSession, patient: Patient, payload: PatientUpdate) -> Patient:
     for key, value in payload.model_dump().items():
         setattr(patient, key, value)
-    await db.commit()
+    try:
+        await db.commit()
+    except SQLAlchemyError as exc:
+        await db.rollback()
+        raise RuntimeError("Failed to update patient") from exc
     await db.refresh(patient)
     return patient
 
 
 async def delete_patient(db: AsyncSession, patient: Patient) -> None:
     await db.delete(patient)
-    await db.commit()
+    try:
+        await db.commit()
+    except SQLAlchemyError as exc:
+        await db.rollback()
+        raise RuntimeError("Failed to delete patient") from exc

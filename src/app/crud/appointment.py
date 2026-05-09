@@ -1,4 +1,5 @@
 from sqlalchemy import select
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.app.models.appointment import Appointment
@@ -8,7 +9,11 @@ from src.app.schemas.appointment import AppointmentCreate
 async def create_appointment(db: AsyncSession, payload: AppointmentCreate) -> Appointment:
     appointment = Appointment(**payload.model_dump())
     db.add(appointment)
-    await db.commit()
+    try:
+        await db.commit()
+    except SQLAlchemyError as exc:
+        await db.rollback()
+        raise RuntimeError("Failed to create appointment") from exc
     await db.refresh(appointment)
     return appointment
 
@@ -25,4 +30,8 @@ async def get_appointment(db: AsyncSession, appointment_id: int) -> Appointment 
 
 async def delete_appointment(db: AsyncSession, appointment: Appointment) -> None:
     await db.delete(appointment)
-    await db.commit()
+    try:
+        await db.commit()
+    except SQLAlchemyError as exc:
+        await db.rollback()
+        raise RuntimeError("Failed to delete appointment") from exc
