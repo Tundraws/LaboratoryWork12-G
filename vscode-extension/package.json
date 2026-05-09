@@ -1,7 +1,7 @@
 {
   "name": "clinic-code-explainer",
   "displayName": "Clinic Code Explainer",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "engines": {
     "vscode": "^1.90.0"
   },
@@ -22,6 +22,21 @@
         "key": "ctrl+shift+e",
         "when": "editorTextFocus"
       }
-    ]
+    ],
+    "configuration": {
+      "title": "Clinic Code Explainer",
+      "properties": {
+        "clinicCodeExplainer.apiKey": {
+          "type": "string",
+          "default": "",
+          "description": "OpenAI API key"
+        },
+        "clinicCodeExplainer.model": {
+          "type": "string",
+          "default": "gpt-4o-mini",
+          "description": "OpenAI model name"
+        }
+      }
+    }
   }
 }

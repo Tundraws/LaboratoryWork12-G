@@ -4,10 +4,75 @@ on:
   pull_request:
     types: [opened, synchronize, reopened]
 
+permissions:
+  contents: read
+  pull-requests: write
+
 jobs:
-  ai-pr-summary:
+  ai-pr-review:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - name: Create PR summary placeholder
-        run: echo "AI PR review workflow scaffold is configured."
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Generate AI PR summary
+        id: summary
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          import urllib.request
+
+          title = os.getenv("PR_TITLE", "")
+          body = os.getenv("PR_BODY", "")
+          prompt = f"""You are a senior code reviewer.
+Create a concise pull request summary and list possible risks.
+Title: {title}
+Body: {body}
+Output markdown with sections: Summary, Risks, Suggested checks."""
+
+          payload = {
+            "model": "gpt-4o-mini",
+            "messages": [
+              {"role": "system", "content": "You are a precise reviewer."},
+              {"role": "user", "content": prompt},
+            ],
+            "temperature": 0.2,
+          }
+          req = urllib.request.Request(
+            "https://api.openai.com/v1/chat/completions",
+            data=json.dumps(payload).encode("utf-8"),
+            headers={
+              "Content-Type": "application/json",
+              "Authorization": f"Bearer {os.environ['OPENAI_API_KEY']}",
+            },
+          )
+          with urllib.request.urlopen(req) as response:
+            data = json.loads(response.read().decode("utf-8"))
+          content = data["choices"][0]["message"]["content"]
+          with open("ai_comment.md", "w", encoding="utf-8") as file:
+            file.write(content)
+          print(content)
+          PY
+
+      - name: Post PR comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const body = fs.readFileSync('ai_comment.md', 'utf8');
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body
+            });

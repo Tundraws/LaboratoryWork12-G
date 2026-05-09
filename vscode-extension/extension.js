@@ -1,5 +1,40 @@
 const vscode = require("vscode");
 
+async function explainCode(code, customPrompt) {
+  const config = vscode.workspace.getConfiguration("clinicCodeExplainer");
+  const apiKey = config.get("apiKey");
+  const model = config.get("model") || "gpt-4o-mini";
+
+  if (!apiKey) {
+    throw new Error("Set clinicCodeExplainer.apiKey in VS Code settings.");
+  }
+
+  const prompt = customPrompt || "Explain this code in simple words for a junior developer.";
+  const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model,
+      messages: [
+        { role: "system", content: "You are a helpful code tutor." },
+        { role: "user", content: `${prompt}\n\n${code}` },
+      ],
+      temperature: 0.2,
+    }),
+  });
+
+  if (!response.ok) {
+    const body = await response.text();
+    throw new Error(`AI request failed: ${body}`);
+  }
+
+  const data = await response.json();
+  return data.choices?.[0]?.message?.content || "No explanation generated.";
+}
+
 function activate(context) {
   const disposable = vscode.commands.registerCommand("clinic.explainCode", async () => {
     const editor = vscode.window.activeTextEditor;
@@ -14,6 +49,19 @@ function activate(context) {
       return;
     }
 
+    const customPrompt = await vscode.window.showInputBox({
+      placeHolder: "Optional custom prompt (leave empty for default)",
+      prompt: "Prompt for AI explanation",
+    });
+
+    let explanation = "";
+    try {
+      explanation = await explainCode(selection, customPrompt);
+    } catch (error) {
+      vscode.window.showErrorMessage(String(error));
+      return;
+    }
+
     const panel = vscode.window.createWebviewPanel(
       "clinicCodeExplain",
       "Code Explanation",
@@ -21,7 +69,14 @@ function activate(context) {
       {}
     );
 
-    panel.webview.html = `<html><body><h2>Code explanation</h2><pre>${selection}</pre><p>This is a scaffold. AI call will be added in next steps.</p></body></html>`;
+    panel.webview.html = `
+      <html>
+        <body>
+          <h2>Explanation</h2>
+          <pre style="white-space: pre-wrap;">${explanation.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</pre>
+        </body>
+      </html>
+    `;
   });
 
   context.subscriptions.push(disposable);
