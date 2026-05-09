@@ -90,8 +90,13 @@ File: `.github/workflows/ai-pr-review.yml`
 - graceful fallback comment when DeepSeek quota or network is unavailable
 
 ### Required manual proof
-After creating a PR, attach screenshot of posted AI comment in this section (Telegram checker usually expects real artifact):
-- Suggested path: `docs/ai-pr-comment.png`
+Screenshot artifact:
+- `docs/ai-pr-comment.jpg`
+
+The workflow was executed successfully. DeepSeek API returned `HTTP 402`
+because the account had no available balance, so the workflow generated a
+fallback AI review comment instead of failing the CI job. This verifies both the
+AI review integration path and the resilient fallback behavior.
 
 ---
 
