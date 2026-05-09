@@ -31,10 +31,50 @@ jobs:
           python - <<'PY'
           import json
           import os
+          import subprocess
+          import urllib.error
           import urllib.request
 
           title = os.getenv("PR_TITLE", "")
           body = os.getenv("PR_BODY", "")
+          api_key = os.getenv("OPENAI_API_KEY", "")
+
+          def changed_files() -> str:
+              try:
+                  output = subprocess.check_output(
+                      ["git", "diff", "--name-only", "HEAD~1", "HEAD"],
+                      text=True,
+                      stderr=subprocess.DEVNULL,
+                  ).strip()
+              except Exception:
+                  output = ""
+              return output or "No changed files detected in this run."
+
+          def fallback_comment(reason: str) -> str:
+              return "\n".join(
+                  [
+                      "## Summary",
+                      "AI summary generation was attempted, but the external AI API was unavailable.",
+                      "",
+                      f"Fallback reason: `{reason}`",
+                      "",
+                      "Changed files:",
+                      "```",
+                      changed_files(),
+                      "```",
+                      "",
+                      "## Risks",
+                      "- Review authentication and authorization changes carefully.",
+                      "- Check migrations, async database calls, and validation logic.",
+                      "- Run the test suite before merging.",
+                      "",
+                      "## Suggested checks",
+                      "- `pytest`",
+                      "- `docker compose config`",
+                      "- Manual check of `/docs` for API route visibility",
+                  ]
+              )
+
           prompt = "\n".join(
               [
                   "You are a senior code reviewer.",
@@ -45,25 +85,34 @@ jobs:
               ]
           )
 
-          payload = {
-            "model": "gpt-4o-mini",
-            "messages": [
-              {"role": "system", "content": "You are a precise reviewer."},
-              {"role": "user", "content": prompt},
-            ],
-            "temperature": 0.2,
-          }
-          req = urllib.request.Request(
-            "https://api.openai.com/v1/chat/completions",
-            data=json.dumps(payload).encode("utf-8"),
-            headers={
-              "Content-Type": "application/json",
-              "Authorization": f"Bearer {os.environ['OPENAI_API_KEY']}",
-            },
-          )
-          with urllib.request.urlopen(req) as response:
-            data = json.loads(response.read().decode("utf-8"))
-          content = data["choices"][0]["message"]["content"]
+          if not api_key:
+              content = fallback_comment("OPENAI_API_KEY secret is not configured")
+          else:
+              payload = {
+                  "model": "gpt-4o-mini",
+                  "messages": [
+                      {"role": "system", "content": "You are a precise reviewer."},
+                      {"role": "user", "content": prompt},
+                  ],
+                  "temperature": 0.2,
+              }
+              req = urllib.request.Request(
+                  "https://api.openai.com/v1/chat/completions",
+                  data=json.dumps(payload).encode("utf-8"),
+                  headers={
+                      "Content-Type": "application/json",
+                      "Authorization": f"Bearer {api_key}",
+                  },
+              )
+              try:
+                  with urllib.request.urlopen(req, timeout=30) as response:
+                      data = json.loads(response.read().decode("utf-8"))
+                  content = data["choices"][0]["message"]["content"]
+              except urllib.error.HTTPError as exc:
+                  content = fallback_comment(f"OpenAI API returned HTTP {exc.code}")
+              except urllib.error.URLError as exc:
+                  content = fallback_comment(f"OpenAI API request failed: {exc.reason}")
+
           with open("ai_comment.md", "w", encoding="utf-8") as file:
             file.write(content)
           print(content)
