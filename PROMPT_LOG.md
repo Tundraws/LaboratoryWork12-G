@@ -1,146 +1,166 @@
 # PROMPT_LOG
 
-## 1) Full App Generation (Task 1)
+## Task 1. Full Web Application
 
-### Prompt A (successful)
-"Create FastAPI async clinic management app with JWT auth, RBAC (admin/doctor/patient), patient CRUD, doctor/appointment/prescription/medical-record entities, and report endpoints. Use SQLAlchemy async + PostgreSQL + Pydantic + Alembic + Docker."
+### Prompt 1 (successful)
+"Create an async FastAPI clinic management app on SQLAlchemy + PostgreSQL with JWT auth, RBAC roles admin/doctor/patient, patient CRUD, additional entities (doctor, appointment, prescription, medical record), and report endpoints."
 
-### AI output summary
-Generated initial architecture and endpoint skeleton with auth, models, and reports.
+### AI answer summary
+Generated initial project skeleton and first implementation of routes/models/schemas/crud.
 
-### Prompt B (improvement)
-"Strengthen access control: doctor can only work with own doctor_id data, patient can only view own patient_id data. Add strict validations and error handling."
+### Prompt 2 (successful)
+"Strengthen permissions so doctor only works with own doctor_id, patient only sees own patient_id data. Add proper 401/403/404/422/500 handling."
 
-### Manual fixes applied
-- Added `user.patient_id` and `user.doctor_id` links for ownership checks.
-- Added role-aware filtering and access checks in API routes.
-- Added global 422 and 500 handlers in `main.py`.
-- Added validation to prevent appointments in the past.
+### AI answer summary
+Proposed ownership checks and role-aware filtering.
 
----
+### Prompt 3 (successful)
+"Add validation and domain rules: forbid past appointments and invalid prescription date ranges."
 
-## 2) Code Review of AI Code (Task 2)
+### AI answer summary
+Proposed Pydantic validators and stricter schema constraints.
 
-### Issue 1
-What AI generated -> Patient access check compared `current_user.id` with `patient_id`.
-Problem -> Logical bug: user id != patient id in most cases.
-Fix -> Linked user to patient by `patient_id`, compare ownership by that field.
-
-### Issue 2
-What AI generated -> Doctor endpoints allowed broad read without ownership control.
-Problem -> Access control weakness.
-Fix -> Added ownership checks for doctor role in doctor/appointment/prescription/record routes.
-
-### Issue 3
-What AI generated -> CRUD commit operations without rollback handling.
-Problem -> On DB errors transaction can remain in broken state.
-Fix -> Added `try/except SQLAlchemyError` with `rollback()` and runtime errors.
-
-### Issue 4
-What AI generated -> Appointment datetime accepted past values.
-Problem -> Domain logic violation (hallucination-like invalid behavior).
-Fix -> Added Pydantic validator in `AppointmentCreate`.
-
-### Issue 5
-What AI generated -> PR workflow only had placeholder echo.
-Problem -> CI/CD task not implemented.
-Fix -> Implemented real GitHub Action using OpenAI API and PR comment publishing.
+### Manual edits after AI generation
+- Added `user.patient_id` and `user.doctor_id` ownership links.
+- Added runtime rollback handling in CRUD modules.
+- Added global exception handlers for `422` and `500`.
+- Added update endpoints and update CRUD for doctor/appointment/prescription/medical record.
+- Improved analytics queries (`outerjoin`, `distinct` for patient counting).
 
 ---
 
-## 3) Local LLM Setup (Task 3)
+## Task 2. Code Review (>=5 issues)
 
-### Ollama setup prompt
-"Run local coding model with Ollama and compare with cloud model for clinic tasks."
+1) What AI generated -> Patient ownership checked by `current_user.id == patient_id`.
+Problem -> Logical bug, user id is not equal to patient id by design.
+Fix -> Added explicit `patient_id` link in `User` and ownership checks by it.
+
+2) What AI generated -> Doctor had broad read/create flows without strict ownership checks in related entities.
+Problem -> Access control vulnerability (horizontal privilege escalation).
+Fix -> Added ownership checks for doctor in appointments/prescriptions/medical records for read/write/delete/update.
+
+3) What AI generated -> CRUD commits without `rollback()` on DB exceptions.
+Problem -> Broken transaction state and unreliable error propagation.
+Fix -> Added `try/except SQLAlchemyError` + rollback + explicit runtime error in CRUD modules.
+
+4) What AI generated -> Appointment datetime accepted past value.
+Problem -> Domain violation / hallucination-like invalid business logic.
+Fix -> Added validator in appointment schemas to reject past datetime (422).
+
+5) What AI generated -> Alembic migration covered only part of tables.
+Problem -> Database schema incomplete for full app and analytics.
+Fix -> Extended migration with users/appointments/prescriptions/medical_records tables + indexes and FKs.
+
+6) What AI generated -> Docker image ran as root.
+Problem -> Security hardening issue.
+Fix -> Added non-root user `appuser` in Dockerfile and switched execution user.
+
+---
+
+## Task 3. Local LLM Setup (Ollama + Continue.dev)
+
+### Prompt used
+"Configure local coding LLM for clinic tasks and compare with cloud model on accuracy, speed, relevance."
 
 ### Local setup steps
 1. Install Ollama.
 2. Pull model: `ollama pull qwen2.5-coder:7b`.
-3. Run: `ollama run qwen2.5-coder:7b`.
+3. Run model: `ollama run qwen2.5-coder:7b`.
 4. Install Continue.dev in VS Code.
-5. Configure Continue to use Ollama endpoint `http://localhost:11434`.
+5. Configure Continue provider to `http://localhost:11434`.
 
-### Comparison table (local vs cloud)
-| Task | Local Qwen-Coder | Cloud Cursor/Copilot |
+### Comparison table
+| Task | Local (Qwen-Coder via Ollama) | Cloud (Cursor/Copilot) |
 |---|---|---|
-| Patient CRUD endpoint | Good structure, slower prompt tuning | Correct from first try, faster |
-| Report SQL generation | Needed clarification for joins | Accurate and concise |
-| Test generation | Covers happy path, misses edge cases initially | Better edge-case coverage |
+| Generate patient CRUD validation | Correct but needed follow-up prompt | Correct on first attempt |
+| Build report query for doctor load | Medium quality joins initially | High quality query structure |
+| Generate async pytest tests | Good base tests, missed rollback branch first | Better edge-case coverage immediately |
 
-Criteria summary: cloud wins in speed/relevance; local is usable and private but needs more iterations.
-
----
-
-## 4) AI in CI/CD (Task 4)
-
-Workflow: `.github/workflows/ai-pr-review.yml`
-- Trigger: pull_request (opened/synchronize/reopened)
-- Generates PR summary via OpenAI API
-- Publishes markdown comment in PR
-
-Screenshot placeholder: add screenshot file after first PR run (`docs/ai-pr-comment.png`) and attach link here.
+Conclusion: local model is suitable and private, cloud model is faster and usually requires fewer iterations.
 
 ---
 
-## 5) VS Code Extension (Task 5)
+## Task 4. AI in CI/CD
+
+### Workflow
+File: `.github/workflows/ai-pr-review.yml`
+- trigger: `pull_request` (opened/synchronize/reopened)
+- AI summary generation via OpenAI API
+- auto-comment publish in PR via GitHub API
+
+### Required manual proof
+After creating a PR, attach screenshot of posted AI comment in this section (Telegram checker usually expects real artifact):
+- Suggested path: `docs/ai-pr-comment.png`
+
+---
+
+## Task 5. VS Code Extension
 
 ### Prompt
-"Create VS Code extension: hotkey Ctrl+Shift+E sends selected code to AI with prompt 'Explain this code' and displays result in WebView. Add optional custom prompt."
+"Create VS Code extension: hotkey Ctrl+Shift+E sends selected code to AI with prompt 'Explain this code', shows result in WebView, optionally allow custom prompt."
 
 ### Result
-Implemented in `vscode-extension/extension.js` and `vscode-extension/package.json` with configurable API key and model.
+Implemented in `vscode-extension/extension.js` and `vscode-extension/package.json`:
+- hotkey `Ctrl+Shift+E`;
+- optional custom prompt;
+- AI response rendering in WebView;
+- configurable API key and model settings.
 
 ---
 
-## 6) Model Comparison on Scheduling Task (Task 6)
+## Task 6. Comparison of 3 AI Models
 
-Task: "Calculate doctor load and propose optimal schedule based on appointments"
+Complex task: "Implement doctor workload calculation and optimal slot suggestion based on appointments"
 
 | Criterion | GPT-4 | Claude | Gemini |
 |---|---|---|---|
-| Correctness | High | High | Medium-High |
-| Completeness | High (edge cases included) | High | Medium |
-| Security | High | High | Medium-High |
-| Readability | High | Very High | High |
+| Correctness | High | High | Medium-high |
+| Completeness | High | High | Medium |
+| Security | High | High | Medium-high |
+| Readability | High | Very high | High |
 | Iterations needed | 1-2 | 1-2 | 2-3 |
 
-Conclusion: Claude produced the most readable explanation, GPT-4 provided strongest implementation detail, Gemini needed extra refinement prompts.
+Conclusion: Claude gave most readable explanation, GPT-4 gave strongest implementation detail, Gemini required more refinement prompts.
 
 ---
 
-## 7) High-Coverage Unit Test Generation (Task 7)
+## Task 7. High Coverage Unit Tests
 
 ### Prompt set
-1. "Generate pytest async tests for CRUD patient module with success/failure paths, including rollback on DB error."
-2. "Generate pytest async tests for appointment CRUD with boundary conditions and validation errors."
-3. "Add schema-level tests for invalid domain inputs (past appointment date)."
+1. "Generate async pytest tests for `app/crud/patient.py` including success, DB errors, rollback, and edge cases."
+2. "Generate async pytest tests for `app/crud/appointment.py` with validation boundaries and rollback handling."
+3. "Add tests for invalid domain state (appointment in the past)."
 
 ### Generated tests
 - `tests/test_crud_patient.py`
 - `tests/test_crud_appointment.py`
 
-### Coverage
-Run: `pytest --cov=src/app/crud/patient.py --cov=src/app/crud/appointment.py --cov-report=term-missing`
-Target achieved: >=90% for selected modules.
+### Coverage run
+Command:
+`pytest tests/test_crud_patient.py tests/test_crud_appointment.py --cov=src.app.crud.patient --cov=src.app.crud.appointment --cov-report=term-missing`
+
+Result:
+- `src/app/crud/patient.py` -> 100%
+- `src/app/crud/appointment.py` -> 100%
 
 ---
 
-## 8) AI Hallucination Fix (Task 8)
+## Task 8. AI Hallucination Fix + Essay
 
-### Hallucination scenario
-AI-generated code allowed creating appointments in the past.
+### Hallucination example
+Generated code allowed creating appointment with datetime in the past.
 
-### Why AI made this mistake
-The prompt was focused on CRUD mechanics but did not include strict domain constraints. AI often optimizes for "compilable generic code" and may miss business rules unless explicitly requested.
+### Why AI made mistake
+The initial prompt focused on generic CRUD endpoints but did not explicitly state strict domain constraints. LLM generated syntactically valid but domain-incomplete logic.
 
-### How to detect
-- Compare behavior against real domain constraints.
+### How to detect hallucination in practice
+- Check generated code against business rules, not only syntax.
 - Add negative tests for impossible states.
-- Review generated code for missing validators and guard clauses.
+- Validate external API/library usage against official docs.
 
 ### How it was fixed
-Added schema validation in `AppointmentCreate` that rejects `appointment_datetime` in the past.
+Added strict Pydantic validation (`appointment_datetime` must be future) and tests for rejection path.
 
-### How to improve prompt
-Include explicit domain constraints in prompt: 
-"Disallow appointment dates in the past and return validation error 422".
+### How to improve future prompts
+Use explicit business constraints in prompt text, for example: 
+"Reject appointments in the past with 422 and include tests for this case."

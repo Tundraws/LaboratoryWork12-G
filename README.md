@@ -7,7 +7,7 @@
 - Variant: 3(25)
 
 ## Program Description
-??????? ?????????? ???????? ? ?????? ?????????????, ??????? ?? ?????, ?????????, ???????????? ??????? ? ?????????????? ????????.
+??????? ?????????? ???????? ? JWT-???????????????, ??????? ???????? (`admin`, `doctor`, `patient`), CRUD ??? ????????? ???????, ?????????????? ????????, unit-??????? ? ??????????????? ??? AI-??????????????? ??????????.
 
 ## Language and Technologies
 - Python 3.12
@@ -17,8 +17,9 @@
 - Alembic
 - JWT (`python-jose[cryptography]`)
 - Password hashing (`passlib[bcrypt]`)
-- Pytest + HTTPX + Coverage
+- Pytest + HTTPX + pytest-cov
 - Docker / Docker Compose
+- GitHub Actions
 
 ## Project Structure
 - Source code: `src/`
@@ -28,17 +29,25 @@
 1. Create virtual environment and activate it.
 2. Install dependencies:
    `pip install -r requirements.txt -r requirements-dev.txt`
-3. Copy `.env.example` to `.env` and set variables.
+3. Copy `.env.example` to `.env` and set values.
+
+## Environment Variables
+- `APP_NAME`
+- `APP_ENV`
+- `DATABASE_URL`
+- `JWT_SECRET_KEY`
+- `JWT_ALGORITHM`
+- `ACCESS_TOKEN_EXPIRE_MINUTES`
 
 ## Run Instructions
 ### Local
-1. Start PostgreSQL (local or Docker).
+1. Start PostgreSQL (locally or via Docker).
 2. Run API:
    `uvicorn src.app.main:app --reload`
-3. Open Swagger: `http://localhost:8000/docs`.
+3. Open Swagger: `http://localhost:8000/docs`
 
 ### Docker
-1. Start all services:
+1. Run containers:
    `docker compose up --build`
 2. API URL: `http://localhost:8000`
 
@@ -73,13 +82,38 @@
 }
 ```
 
-### Authorized request
-`GET /api/v1/patients` with `Authorization: Bearer <token>`
+### Create patient (admin token required)
+`POST /api/v1/patients`
+```json
+{
+  "first_name": "Anna",
+  "last_name": "Melnikova",
+  "date_of_birth": "2000-01-01",
+  "phone": "+375291111111",
+  "email": "patient@example.com",
+  "address": "Minsk",
+  "insurance_policy": "1234567890123456"
+}
+```
+
+### Reports
+- `GET /api/v1/reports/doctors/by-patients-count`
+- `GET /api/v1/reports/patients/by-visits`
+- `GET /api/v1/reports/prescriptions/by-medication`
+
+## Tests and Coverage
+- Run tests: `pytest`
+- Run focused coverage for task 7:
+  `pytest tests/test_crud_patient.py tests/test_crud_appointment.py --cov=src.app.crud.patient --cov=src.app.crud.appointment --cov-report=term-missing`
 
 ## VS Code Extension
-`vscode-extension/` contains extension code that explains selected code by hotkey `Ctrl+Shift+E` and renders AI response in WebView.
+Folder `vscode-extension/` contains extension that:
+- on `Ctrl+Shift+E` sends selected code to AI with prompt "Explain this code";
+- supports optional custom prompt;
+- displays response in WebView panel.
 
-Install:
-1. Open `vscode-extension/` as separate extension project.
-2. Run `npm install` and press `F5` in VS Code extension host.
-3. Configure setting `clinicCodeExplainer.apiKey`.
+Install steps:
+1. Open `vscode-extension/` as extension project.
+2. Run `npm install`.
+3. Press `F5` in VS Code extension host.
+4. Set `clinicCodeExplainer.apiKey` in VS Code settings.
