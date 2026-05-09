@@ -34,11 +34,15 @@ jobs:
 
           title = os.getenv("PR_TITLE", "")
           body = os.getenv("PR_BODY", "")
-          prompt = f"""You are a senior code reviewer.
-Create a concise pull request summary and list possible risks.
-Title: {title}
-Body: {body}
-Output markdown with sections: Summary, Risks, Suggested checks."""
+          prompt = "\n".join(
+              [
+                  "You are a senior code reviewer.",
+                  "Create a concise pull request summary and list possible risks.",
+                  f"Title: {title}",
+                  f"Body: {body}",
+                  "Output markdown with sections: Summary, Risks, Suggested checks.",
+              ]
+          )
 
           payload = {
             "model": "gpt-4o-mini",
