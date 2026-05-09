@@ -88,6 +88,10 @@ VS Code extension for explaining selected code.
 }
 ```
 
+Swagger Authorize uses OAuth2 password form. Enter the user email into the
+`username` field and the password into the `password` field; leave
+`client_id` and `client_secret` empty.
+
 ### Create patient (admin token required)
 `POST /api/v1/patients`
 ```json
