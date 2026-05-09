@@ -1,21 +1,23 @@
 # Clinic Management System
 
 ## Student Information
-- Full name: Мельникова Анастасия
+- Full name: ?????????? ?????????
 - Group: 220032-11
 - Laboratory work: 12
 - Variant: 3(25)
 
 ## Program Description
-Clinic management system with doctors, patients, appointments, prescriptions, medical records, JWT authentication, role-based access control, and analytical reports.
+??????? ?????????? ???????? ? ?????? ?????????????, ??????? ?? ?????, ?????????, ???????????? ??????? ? ?????????????? ????????.
 
-## Technology Stack
+## Language and Technologies
 - Python 3.12
 - FastAPI
-- SQLAlchemy (async)
-- PostgreSQL
+- SQLAlchemy 2 (async)
+- PostgreSQL + asyncpg
 - Alembic
-- Pytest + HTTPX
+- JWT (`python-jose[cryptography]`)
+- Password hashing (`passlib[bcrypt]`)
+- Pytest + HTTPX + Coverage
 - Docker / Docker Compose
 
 ## Project Structure
@@ -23,26 +25,42 @@ Clinic management system with doctors, patients, appointments, prescriptions, me
 - Tests: `tests/`
 
 ## Build Instructions
-1. Create virtual environment
-2. Install dependencies: `pip install -r requirements.txt -r requirements-dev.txt`
-3. Copy `.env.example` to `.env` and fill values
+1. Create virtual environment and activate it.
+2. Install dependencies:
+   `pip install -r requirements.txt -r requirements-dev.txt`
+3. Copy `.env.example` to `.env` and set variables.
 
 ## Run Instructions
 ### Local
-- Start API: `uvicorn src.app.main:app --reload`
-- Open docs: `http://localhost:8000/docs`
+1. Start PostgreSQL (local or Docker).
+2. Run API:
+   `uvicorn src.app.main:app --reload`
+3. Open Swagger: `http://localhost:8000/docs`.
 
 ### Docker
-- Start app and db: `docker compose up --build`
+1. Start all services:
+   `docker compose up --build`
+2. API URL: `http://localhost:8000`
 
-## Usage Examples
-### Register
+## API Examples
+### Register admin
 `POST /api/v1/auth/register`
 ```json
 {
   "email": "admin@example.com",
   "password": "StrongPass123",
   "role": "admin"
+}
+```
+
+### Register doctor user
+`POST /api/v1/auth/register`
+```json
+{
+  "email": "doctor@example.com",
+  "password": "StrongPass123",
+  "role": "doctor",
+  "doctor_id": 1
 }
 ```
 
@@ -55,5 +73,13 @@ Clinic management system with doctors, patients, appointments, prescriptions, me
 }
 ```
 
-### Authorized Request
-`GET /api/v1/patients` with header `Authorization: Bearer <token>`
+### Authorized request
+`GET /api/v1/patients` with `Authorization: Bearer <token>`
+
+## VS Code Extension
+`vscode-extension/` contains extension code that explains selected code by hotkey `Ctrl+Shift+E` and renders AI response in WebView.
+
+Install:
+1. Open `vscode-extension/` as separate extension project.
+2. Run `npm install` and press `F5` in VS Code extension host.
+3. Configure setting `clinicCodeExplainer.apiKey`.
