@@ -8,13 +8,10 @@ from fastapi.responses import JSONResponse
 from src.app import models  # noqa: F401
 from src.app.api.v1 import api_router
 from src.app.core.config import settings
-from src.app.core.database import Base, engine
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
     yield
 
 

@@ -45,14 +45,17 @@ VS Code extension for explaining selected code.
 ## Run Instructions
 ### Local
 1. Start PostgreSQL (locally or via Docker).
-2. Run API:
+2. Apply database migrations:
+   `alembic upgrade head`
+3. Run API:
    `uvicorn src.app.main:app --reload`
-3. Open Swagger: `http://localhost:8000/docs`
+4. Open Swagger: `http://localhost:8000/docs`
 
 ### Docker
 1. Run containers:
    `docker compose up --build`
-2. API URL: `http://localhost:8000`
+2. Docker Compose applies Alembic migrations automatically before starting API.
+3. API URL: `http://localhost:8000`
 
 ## API Examples
 ### Register admin
