@@ -3,14 +3,15 @@ const vscode = require("vscode");
 async function explainCode(code, customPrompt) {
   const config = vscode.workspace.getConfiguration("clinicCodeExplainer");
   const apiKey = config.get("apiKey");
-  const model = config.get("model") || "gpt-4o-mini";
+  const model = config.get("model") || "deepseek-v4-flash";
+  const endpoint = config.get("endpoint") || "https://api.deepseek.com/chat/completions";
 
   if (!apiKey) {
-    throw new Error("Set clinicCodeExplainer.apiKey in VS Code settings.");
+    throw new Error("Set clinicCodeExplainer.apiKey to a DeepSeek API key in VS Code settings.");
   }
 
   const prompt = customPrompt || "Explain this code in simple words for a junior developer.";
-  const response = await fetch("https://api.openai.com/v1/chat/completions", {
+  const response = await fetch(endpoint, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

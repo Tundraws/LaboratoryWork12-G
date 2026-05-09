@@ -24,7 +24,7 @@ jobs:
       - name: Generate AI PR summary
         id: summary
         env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
           PR_TITLE: ${{ github.event.pull_request.title }}
           PR_BODY: ${{ github.event.pull_request.body }}
         run: |
@@ -37,7 +37,7 @@ jobs:
 
           title = os.getenv("PR_TITLE", "")
           body = os.getenv("PR_BODY", "")
-          api_key = os.getenv("OPENAI_API_KEY", "")
+          api_key = os.getenv("DEEPSEEK_API_KEY", "")
 
           def changed_files() -> str:
               try:
@@ -86,10 +86,10 @@ jobs:
           )
 
           if not api_key:
-              content = fallback_comment("OPENAI_API_KEY secret is not configured")
+              content = fallback_comment("DEEPSEEK_API_KEY secret is not configured")
           else:
               payload = {
-                  "model": "gpt-4o-mini",
+                  "model": "deepseek-v4-flash",
                   "messages": [
                       {"role": "system", "content": "You are a precise reviewer."},
                       {"role": "user", "content": prompt},
@@ -97,7 +97,7 @@ jobs:
                   "temperature": 0.2,
               }
               req = urllib.request.Request(
-                  "https://api.openai.com/v1/chat/completions",
+                  "https://api.deepseek.com/chat/completions",
                   data=json.dumps(payload).encode("utf-8"),
                   headers={
                       "Content-Type": "application/json",
@@ -109,9 +109,9 @@ jobs:
                       data = json.loads(response.read().decode("utf-8"))
                   content = data["choices"][0]["message"]["content"]
               except urllib.error.HTTPError as exc:
-                  content = fallback_comment(f"OpenAI API returned HTTP {exc.code}")
+                  content = fallback_comment(f"DeepSeek API returned HTTP {exc.code}")
               except urllib.error.URLError as exc:
-                  content = fallback_comment(f"OpenAI API request failed: {exc.reason}")
+                  content = fallback_comment(f"DeepSeek API request failed: {exc.reason}")
 
           with open("ai_comment.md", "w", encoding="utf-8") as file:
             file.write(content)

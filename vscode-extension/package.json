@@ -29,12 +29,17 @@
         "clinicCodeExplainer.apiKey": {
           "type": "string",
           "default": "",
-          "description": "OpenAI API key"
+          "description": "DeepSeek API key"
         },
         "clinicCodeExplainer.model": {
           "type": "string",
-          "default": "gpt-4o-mini",
-          "description": "OpenAI model name"
+          "default": "deepseek-v4-flash",
+          "description": "DeepSeek model name"
+        },
+        "clinicCodeExplainer.endpoint": {
+          "type": "string",
+          "default": "https://api.deepseek.com/chat/completions",
+          "description": "DeepSeek OpenAI-compatible chat completions endpoint"
         }
       }
     }

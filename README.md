@@ -114,9 +114,16 @@ Folder `vscode-extension/` contains extension that:
 - on `Ctrl+Shift+E` sends selected code to AI with prompt "Explain this code";
 - supports optional custom prompt;
 - displays response in WebView panel.
+- uses DeepSeek chat completions API by default.
 
 Install steps:
 1. Open `vscode-extension/` as extension project.
 2. Run `npm install`.
 3. Press `F5` in VS Code extension host.
-4. Set `clinicCodeExplainer.apiKey` in VS Code settings.
+4. Set `clinicCodeExplainer.apiKey` to your DeepSeek API key in VS Code settings.
+5. Optional: change `clinicCodeExplainer.model` (`deepseek-v4-flash` by default).
+
+## AI PR Review Workflow
+The workflow `.github/workflows/ai-pr-review.yml` uses DeepSeek API.
+Add repository secret `DEEPSEEK_API_KEY`, then create a pull request or run the
+workflow manually from GitHub Actions.

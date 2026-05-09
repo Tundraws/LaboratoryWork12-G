@@ -85,8 +85,9 @@ Conclusion: local model is suitable and private, cloud model is faster and usual
 ### Workflow
 File: `.github/workflows/ai-pr-review.yml`
 - trigger: `pull_request` (opened/synchronize/reopened)
-- AI summary generation via OpenAI API
+- AI summary generation via DeepSeek API (`DEEPSEEK_API_KEY`)
 - auto-comment publish in PR via GitHub API
+- graceful fallback comment when DeepSeek quota or network is unavailable
 
 ### Required manual proof
 After creating a PR, attach screenshot of posted AI comment in this section (Telegram checker usually expects real artifact):
@@ -104,7 +105,7 @@ Implemented in `vscode-extension/extension.js` and `vscode-extension/package.jso
 - hotkey `Ctrl+Shift+E`;
 - optional custom prompt;
 - AI response rendering in WebView;
-- configurable API key and model settings.
+- configurable DeepSeek API key, endpoint, and model settings.
 
 ---
 
