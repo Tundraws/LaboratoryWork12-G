@@ -170,3 +170,40 @@ Added strict Pydantic validation (`appointment_datetime` must be future) and tes
 ### How to improve future prompts
 Use explicit business constraints in prompt text, for example: 
 "Reject appointments in the past with 422 and include tests for this case."
+
+---
+
+## Final Verification and Runtime Fixes
+
+### Prompt / debugging request
+"Run the project with Docker, check `/docs`, register an admin user, verify Swagger authorization, and fix any runtime errors found during manual testing."
+
+### Issues found during manual verification
+1) What failed -> `POST /api/v1/auth/register` returned `500 Internal Server Error`.
+Problem -> `passlib` was incompatible with the newest `bcrypt` package in the Docker image.
+Fix -> Pinned `bcrypt<5` in `requirements.txt`, rebuilt the container, and verified registration returns a bearer JWT.
+
+2) What failed -> `alembic upgrade head` raised `MissingGreenlet`.
+Problem -> Alembic was using a synchronous migration environment with an asyncpg SQLAlchemy URL.
+Fix -> Reworked `migrations/env.py` to use `async_engine_from_config` and `connection.run_sync(...)`.
+
+3) What failed -> Alembic tried to connect to `localhost` inside Docker.
+Problem -> `localhost` inside the `web` container is not the PostgreSQL service.
+Fix -> Alembic now reads `DATABASE_URL` from application settings, so Docker uses `db:5432`.
+
+4) What failed -> On a clean Docker start, the API container could start before PostgreSQL was ready.
+Problem -> `depends_on` without a healthcheck only waits for container start, not database readiness.
+Fix -> Added PostgreSQL `healthcheck` and `depends_on: condition: service_healthy`.
+
+5) What failed -> Swagger `Authorize` returned an auth error.
+Problem -> Swagger OAuth2 password flow sends `username/password` as form data, while `/auth/login` only accepted JSON.
+Fix -> `/auth/login` now accepts both JSON (`email/password`) and OAuth2 form (`username/password`).
+
+### Final checks
+- `docker compose down -v`
+- `docker compose up -d --build`
+- `GET /health` -> `{"status": "ok"}`
+- `POST /api/v1/auth/register` -> returns bearer token
+- `POST /api/v1/auth/login` with JSON -> returns bearer token
+- `POST /api/v1/auth/login` with OAuth2 form -> returns bearer token
+- `python -m pytest` -> `22 passed`
