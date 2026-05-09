@@ -3,7 +3,7 @@ from datetime import date
 from pydantic import BaseModel, ConfigDict, field_validator
 
 
-class PrescriptionCreate(BaseModel):
+class PrescriptionBase(BaseModel):
     patient_id: int
     doctor_id: int
     medication_name: str
@@ -20,7 +20,15 @@ class PrescriptionCreate(BaseModel):
         return value
 
 
-class PrescriptionRead(PrescriptionCreate):
+class PrescriptionCreate(PrescriptionBase):
+    pass
+
+
+class PrescriptionUpdate(PrescriptionBase):
+    pass
+
+
+class PrescriptionRead(PrescriptionBase):
     id: int
 
     model_config = ConfigDict(from_attributes=True)

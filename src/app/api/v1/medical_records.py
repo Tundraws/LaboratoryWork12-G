@@ -2,10 +2,16 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.app.core.database import get_db
-from src.app.crud.medical_record import create_medical_record, delete_medical_record, get_medical_record, list_medical_records
+from src.app.crud.medical_record import (
+    create_medical_record,
+    delete_medical_record,
+    get_medical_record,
+    list_medical_records,
+    update_medical_record,
+)
 from src.app.dependencies import get_current_user
 from src.app.models.user import User, UserRole
-from src.app.schemas.medical_record import MedicalRecordCreate, MedicalRecordRead
+from src.app.schemas.medical_record import MedicalRecordCreate, MedicalRecordRead, MedicalRecordUpdate
 
 router = APIRouter(prefix="/medical-records", tags=["medical_records"])
 
@@ -55,6 +61,26 @@ async def get_record_by_id(
     if current_user.role == UserRole.patient and current_user.patient_id != item.patient_id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Cannot view other records")
     return item
+
+
+@router.put("/{record_id}", response_model=MedicalRecordRead)
+async def put_record(
+    record_id: int,
+    payload: MedicalRecordUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> MedicalRecordRead:
+    """Update medical record by id with role-aware checks."""
+    item = await get_medical_record(db, record_id)
+    if item is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Medical record not found")
+    if current_user.role == UserRole.patient:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Insufficient permissions")
+    if current_user.role == UserRole.doctor and (
+        current_user.doctor_id != item.doctor_id or current_user.doctor_id != payload.doctor_id
+    ):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Cannot update other records")
+    return await update_medical_record(db, item, payload)
 
 
 @router.delete("/{record_id}", status_code=status.HTTP_204_NO_CONTENT)

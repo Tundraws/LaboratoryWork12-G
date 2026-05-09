@@ -2,10 +2,16 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.app.core.database import get_db
-from src.app.crud.appointment import create_appointment, delete_appointment, get_appointment, list_appointments
+from src.app.crud.appointment import (
+    create_appointment,
+    delete_appointment,
+    get_appointment,
+    list_appointments,
+    update_appointment,
+)
 from src.app.dependencies import get_current_user, require_roles
 from src.app.models.user import User, UserRole
-from src.app.schemas.appointment import AppointmentCreate, AppointmentRead
+from src.app.schemas.appointment import AppointmentCreate, AppointmentRead, AppointmentUpdate
 
 router = APIRouter(prefix="/appointments", tags=["appointments"])
 
@@ -48,6 +54,26 @@ async def get_appointment_by_id(
     if current_user.role == UserRole.patient and current_user.patient_id != item.patient_id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Cannot view other appointments")
     return item
+
+
+@router.put("/{appointment_id}", response_model=AppointmentRead)
+async def put_appointment(
+    appointment_id: int,
+    payload: AppointmentUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> AppointmentRead:
+    """Update appointment with role-aware ownership checks."""
+    item = await get_appointment(db, appointment_id)
+    if item is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Appointment not found")
+    if current_user.role == UserRole.patient:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Insufficient permissions")
+    if current_user.role == UserRole.doctor and (
+        current_user.doctor_id != item.doctor_id or current_user.doctor_id != payload.doctor_id
+    ):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Cannot update other appointments")
+    return await update_appointment(db, item, payload)
 
 
 @router.delete("/{appointment_id}", status_code=status.HTTP_204_NO_CONTENT)

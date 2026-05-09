@@ -3,7 +3,7 @@ from datetime import date
 from pydantic import BaseModel, ConfigDict
 
 
-class MedicalRecordCreate(BaseModel):
+class MedicalRecordBase(BaseModel):
     patient_id: int
     doctor_id: int
     record_date: date
@@ -12,7 +12,15 @@ class MedicalRecordCreate(BaseModel):
     notes: str | None = None
 
 
-class MedicalRecordRead(MedicalRecordCreate):
+class MedicalRecordCreate(MedicalRecordBase):
+    pass
+
+
+class MedicalRecordUpdate(MedicalRecordBase):
+    pass
+
+
+class MedicalRecordRead(MedicalRecordBase):
     id: int
 
     model_config = ConfigDict(from_attributes=True)

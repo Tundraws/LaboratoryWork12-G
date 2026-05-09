@@ -2,10 +2,16 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.app.core.database import get_db
-from src.app.crud.prescription import create_prescription, delete_prescription, get_prescription, list_prescriptions
+from src.app.crud.prescription import (
+    create_prescription,
+    delete_prescription,
+    get_prescription,
+    list_prescriptions,
+    update_prescription,
+)
 from src.app.dependencies import get_current_user
 from src.app.models.user import User, UserRole
-from src.app.schemas.prescription import PrescriptionCreate, PrescriptionRead
+from src.app.schemas.prescription import PrescriptionCreate, PrescriptionRead, PrescriptionUpdate
 
 router = APIRouter(prefix="/prescriptions", tags=["prescriptions"])
 
@@ -55,6 +61,26 @@ async def get_prescription_by_id(
     if current_user.role == UserRole.patient and current_user.patient_id != item.patient_id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Cannot view other prescriptions")
     return item
+
+
+@router.put("/{prescription_id}", response_model=PrescriptionRead)
+async def put_prescription(
+    prescription_id: int,
+    payload: PrescriptionUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> PrescriptionRead:
+    """Update prescription by id with role-aware checks."""
+    item = await get_prescription(db, prescription_id)
+    if item is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Prescription not found")
+    if current_user.role == UserRole.patient:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Insufficient permissions")
+    if current_user.role == UserRole.doctor and (
+        current_user.doctor_id != item.doctor_id or current_user.doctor_id != payload.doctor_id
+    ):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Cannot update other prescriptions")
+    return await update_prescription(db, item, payload)
 
 
 @router.delete("/{prescription_id}", status_code=status.HTTP_204_NO_CONTENT)

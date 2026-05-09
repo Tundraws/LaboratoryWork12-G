@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends
-from sqlalchemy import func, select
+from sqlalchemy import distinct, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.app.core.database import get_db
@@ -18,12 +18,12 @@ async def doctors_by_patients_count(
     db: AsyncSession = Depends(get_db),
     _: User = Depends(require_roles(UserRole.admin)),
 ) -> list[dict[str, int | str]]:
-    """Return doctors sorted by patient visits count."""
+    """Return doctors sorted by distinct patient count."""
     query = (
-        select(Doctor.id, Doctor.first_name, Doctor.last_name, func.count(Appointment.id).label("patients_count"))
-        .join(Appointment, Appointment.doctor_id == Doctor.id)
+        select(Doctor.id, Doctor.first_name, Doctor.last_name, func.count(distinct(Appointment.patient_id)).label("patients_count"))
+        .outerjoin(Appointment, Appointment.doctor_id == Doctor.id)
         .group_by(Doctor.id)
-        .order_by(func.count(Appointment.id).desc())
+        .order_by(func.count(distinct(Appointment.patient_id)).desc(), Doctor.id.asc())
     )
     result = await db.execute(query)
     return [
@@ -44,9 +44,9 @@ async def patients_by_visits(
     """Return patients sorted by visits count."""
     query = (
         select(Patient.id, Patient.first_name, Patient.last_name, func.count(Appointment.id).label("visits_count"))
-        .join(Appointment, Appointment.patient_id == Patient.id)
+        .outerjoin(Appointment, Appointment.patient_id == Patient.id)
         .group_by(Patient.id)
-        .order_by(func.count(Appointment.id).desc())
+        .order_by(func.count(Appointment.id).desc(), Patient.id.asc())
     )
     result = await db.execute(query)
     return [
@@ -64,7 +64,7 @@ async def prescriptions_by_medication(
     query = (
         select(Prescription.medication_name, func.count(Prescription.id).label("issued_count"))
         .group_by(Prescription.medication_name)
-        .order_by(func.count(Prescription.id).desc())
+        .order_by(func.count(Prescription.id).desc(), Prescription.medication_name.asc())
     )
     result = await db.execute(query)
     return [{"medication_name": row.medication_name, "issued_count": row.issued_count} for row in result]

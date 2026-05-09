@@ -2,10 +2,10 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.app.core.database import get_db
-from src.app.crud.doctor import create_doctor, delete_doctor, get_doctor, list_doctors
+from src.app.crud.doctor import create_doctor, delete_doctor, get_doctor, list_doctors, update_doctor
 from src.app.dependencies import get_current_user, require_roles
 from src.app.models.user import User, UserRole
-from src.app.schemas.doctor import DoctorCreate, DoctorRead
+from src.app.schemas.doctor import DoctorCreate, DoctorRead, DoctorUpdate
 
 router = APIRouter(prefix="/doctors", tags=["doctors"])
 
@@ -44,6 +44,20 @@ async def get_doctor_by_id(
     if current_user.role == UserRole.patient:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Insufficient permissions")
     return doctor
+
+
+@router.put("/{doctor_id}", response_model=DoctorRead)
+async def put_doctor(
+    doctor_id: int,
+    payload: DoctorUpdate,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_roles(UserRole.admin)),
+) -> DoctorRead:
+    """Update doctor by id (admin only)."""
+    doctor = await get_doctor(db, doctor_id)
+    if doctor is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Doctor not found")
+    return await update_doctor(db, doctor, payload)
 
 
 @router.delete("/{doctor_id}", status_code=status.HTTP_204_NO_CONTENT)

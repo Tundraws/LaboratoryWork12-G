@@ -14,6 +14,10 @@ class DoctorCreate(DoctorBase):
     pass
 
 
+class DoctorUpdate(DoctorBase):
+    pass
+
+
 class DoctorRead(DoctorBase):
     id: int
 

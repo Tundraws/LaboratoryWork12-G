@@ -4,7 +4,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, field_validator
 
 
-class AppointmentCreate(BaseModel):
+class AppointmentBase(BaseModel):
     patient_id: int
     doctor_id: int
     appointment_datetime: datetime
@@ -22,7 +22,15 @@ class AppointmentCreate(BaseModel):
         return value
 
 
-class AppointmentRead(AppointmentCreate):
+class AppointmentCreate(AppointmentBase):
+    pass
+
+
+class AppointmentUpdate(AppointmentBase):
+    pass
+
+
+class AppointmentRead(AppointmentBase):
     id: int
 
     model_config = ConfigDict(from_attributes=True)
