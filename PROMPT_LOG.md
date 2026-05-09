@@ -199,6 +199,10 @@ Fix -> Added PostgreSQL `healthcheck` and `depends_on: condition: service_health
 Problem -> Swagger OAuth2 password flow sends `username/password` as form data, while `/auth/login` only accepted JSON.
 Fix -> `/auth/login` now accepts both JSON (`email/password`) and OAuth2 form (`username/password`).
 
+6) What was improved -> Swagger still did not show a direct token field after OAuth2 form support.
+Problem -> For manual checking, students often already have a JWT from `/auth/register` and need to paste it directly.
+Fix -> Replaced the OpenAPI security helper with HTTP Bearer auth so Swagger `Authorize` shows a `Value` field for the JWT token.
+
 ### Final checks
 - `docker compose down -v`
 - `docker compose up -d --build`
