@@ -1,10 +1,10 @@
 # Clinic Management System
 
 ## Student Information
-- Full name: Melnikova Anastasia (Мельникова Анастасия)
-- Group: 220032-11
+- Full name: Gulyaev Evgeny Aleksandrovich (Гуляев Евгений Александрович)
+- Group: 221331
 - Laboratory work: 12
-- Variant: 3(25)
+- Variant: 25
 
 ## Program Description
 Clinic management system with JWT authentication, role-based access control
@@ -96,7 +96,7 @@ access token from register/login into the `Value` field.
 ```json
 {
   "first_name": "Anna",
-  "last_name": "Melnikova",
+  "last_name": "Gulyaev",
   "date_of_birth": "2000-01-01",
   "phone": "+375291111111",
   "email": "patient@example.com",
