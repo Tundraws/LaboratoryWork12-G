@@ -4,6 +4,7 @@
 - Full name: Gulyaev Evgeny Aleksandrovich (Гуляев Евгений Александрович)
 - Group: 221331
 - Laboratory work: 12
+- Option type: advanced difficulty (повышенная сложность)
 - Variant: 25
 
 ## Program Description
